@@ -21,6 +21,9 @@ dialog{max-width:440px;width:calc(100% - 40px);background:#102033;color:var(--te
 .mode-label{font-size:16px;margin:0 0 14px;color:#c8dbef}.start-area{text-align:center;margin:36px auto 22px}.start-area .primary{width:min(320px,100%);margin:0;min-height:52px}.start-area p{font-size:12px;min-height:20px}.guessing .mode-label,.guessing .start-area{opacity:0;visibility:hidden;pointer-events:none}
 @media(max-width:650px){.mode-label{margin-top:4px}.start-area{margin-top:28px}}
 </style>
+<style>
+.guessing .console{border-color:color-mix(in srgb,var(--beat-color,#54ddbd) calc(var(--beat-glow,0)*100%),#325576);box-shadow:0 0 0 1px rgb(var(--beat-rgb,84 221 189)/var(--beat-glow,0)),0 0 26px rgb(var(--beat-rgb,84 221 189)/calc(var(--beat-glow,0)*.55)),0 0 64px rgb(var(--beat-rgb,84 221 189)/calc(var(--beat-glow,0)*.3)),0 24px 100px #0006}
+</style>
 </head>
 <body>
 <header><div class="brand"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i><i></i></span> GUESS THE BPM</div><div class="topright"><label class="volume-label" for="volume">音量</label><input class="volume" id="volume" aria-label="音量" type="range" min="0" max="100" value="65"></div></header>
@@ -85,7 +88,7 @@ function drum(t,n){
  // Quiet eighth-note ornaments vary by bar; no extra accents at high tempos.
  if(tempos[round]<=210&&(n+v+bar)%2===0){const at=t+step/2;if(at<deadline-.02){if(k.family===3||k.family===4)wood((620+v*95)*p,at,.045);else if(k.family===5)metal(720*p,at,.07,.035);else hiss(5500+v*650,at,.025,.025);}}
 }
-function stop(){clearInterval(timer);cancelAnimationFrame(raf);for(const s of sources){try{s.stop();}catch{}}sources.clear();visualBeats=[];flashes.forEach(el=>el.style.opacity=0);}
+function stop(){clearInterval(timer);cancelAnimationFrame(raf);for(const s of sources){try{s.stop();}catch{}}sources.clear();visualBeats=[];flashes.forEach(el=>el.style.opacity=0);$('console').style.setProperty('--beat-glow','0');}
 function lock(active){document.querySelectorAll('.mode').forEach(b=>b.disabled=active);$('exit').classList.toggle('hidden',!active);document.body.classList.toggle('guessing',active);document.querySelectorAll('header,.heading,.mode-label,.modes,.start-area,.bottom,footer').forEach(el=>el.inert=active);}
 function error(msg){$('help').textContent=msg;$('help').classList.add('error');}
 function select(mode){selected=mode;document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.mode===mode)));reset();}
@@ -106,6 +109,10 @@ function visualTick(){
  let now=ctx.currentTime;
  if(ctx.getOutputTimestamp){const stamp=ctx.getOutputTimestamp();if(stamp.performanceTime>0)now=stamp.contextTime+(performance.now()-stamp.performanceTime)/1000;}
  visualBeats=visualBeats.filter(b=>now-b.time<.1);
+ const colors={single:['#54ddbd','84 221 189'],four:['#ffc16e','255 193 110'],fast:['#ff7187','255 113 135']},panel=$('console');
+ panel.style.setProperty('--beat-color',colors[selected][0]);panel.style.setProperty('--beat-rgb',colors[selected][1]);
+ const activeBeat=visualBeats.find(b=>now>=b.time);
+ panel.style.setProperty('--beat-glow',activeBeat?String(Math.max(0,1-(now-activeBeat.time)/.1)):'0');
  flashes.forEach((el,i)=>{const b=visualBeats.find(b=>b.index===i&&now>=b.time);el.style.opacity=b?Math.max(0,.6*(1-(now-b.time)/.1)):0;});
 }
 function listenEnd(){stop();if(selected==='fast'){state='answering';duration=5;deadline=ctx.currentTime+5;$('guess').disabled=false;$('status').textContent='填写答案';$('detail').textContent='倒计时结束自动提交';$('action').textContent='等待自动提交';$('help').textContent='未作答按 100% 误差计入';$('guess').focus({preventScroll:true});timer=setInterval(()=>{if(ctx.currentTime>=deadline)submit(true);},25);tick();}else{state='waiting';$('status').textContent='等待答案';$('time').textContent='播放结束';$('detail').textContent='填写后确认';$('progress').style.width='100%';}}
